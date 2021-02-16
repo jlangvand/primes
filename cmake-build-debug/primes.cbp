@@ -85,6 +85,12 @@
 		<Unit filename="/home/jlangvand/netprog/primes/main.cpp">
 			<Option target="primes"/>
 		</Unit>
+		<Unit filename="/home/jlangvand/netprog/primes/primetest.cpp">
+			<Option target="primes"/>
+		</Unit>
+		<Unit filename="/home/jlangvand/netprog/primes/primetest.h">
+			<Option target="primes"/>
+		</Unit>
 		<Unit filename="/home/jlangvand/netprog/primes/CMakeLists.txt">
 			<Option virtualFolder="CMake Files\"/>
 		</Unit>
