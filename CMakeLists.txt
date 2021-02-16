@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 14)
 find_package(Boost 1.75.0)
 if(Boost_FOUND)
   include_directories(${Boost_INCLUDE_DIRS})
-  add_executable(primes main.cpp)
+  add_executable(primes main.cpp primetest.cpp)
 endif()
 
 set(CMAKE_CXX_FLAGS "-lboost_program_options")

@@ -1,10 +1,5 @@
-#include <boost/multiprecision/miller_rabin.hpp>
-#include <boost/program_options.hpp>
-#include <boost/program_options/options_description.hpp>
-#include <boost/program_options/parsers.hpp>
-#include <boost/program_options/value_semantic.hpp>
-#include <boost/program_options/variables_map.hpp>
-#include <boost/random.hpp>
+#include "primetest.h"
+
 #include <cstdint>
 #include <ctime>
 #include <iostream>
@@ -13,16 +8,15 @@
 #include <ostream>
 #include <pthread.h>
 
-using std::cout;
+#include <boost/multiprecision/miller_rabin.hpp>
+#include <boost/program_options.hpp>
+#include <boost/random.hpp>
 
-namespace mp = boost::multiprecision;
 namespace bpo = boost::program_options;
 
 std::mutex cout_mutex;
 std::mutex foundPrimes_mutex;
 std::list<std::uint32_t> foundPrimes;
-
-const int bp[] = { 2, 3, 5, 7, 11, 13, 17, 19, 23 };
 
 struct thread_data {
   int thread_id;
@@ -32,7 +26,6 @@ struct thread_data {
   boost::random::mt19937 rng;
 };
 
-bool primeTest(std::uint32_t n, boost::random::mt19937 rng, int passes);
 void *PrimeWorker(void *threadarg);
 
 int main(int argc, const char** argv) {
@@ -72,10 +65,6 @@ int main(int argc, const char** argv) {
   if (vm.count("threads")) threadCount = vm["threads"].as<int>();
   if (vm.count("passes")) passes = vm["passes"].as<int>();
 
-  if (t_start % 2 == 0)
-    t_start++;
-  if (t_end % 2 == 0)
-    t_end--;
   if ((t_end - t_start) / 2 <= threadCount)
     threadCount = (t_end - t_start) / 3;
 
@@ -92,7 +81,6 @@ int main(int argc, const char** argv) {
   
   for (int i = 0; i < threadCount; i++) {
     _e = _s + ((t_end - t_start) / threadCount);
-    //cout << "Thread start: " << _s + t_start << ", end: " << _e + t_start << std::endl;
     td[i].thread_id = i;
     td[i].rng = gen;
     td[i].start = _s + t_start;
@@ -111,19 +99,12 @@ int main(int argc, const char** argv) {
   }
 
   for (foundPrimes.sort(); foundPrimes.size(); foundPrimes.pop_front()) {
-    cout << foundPrimes.front() << "\n";
+    std::cout << foundPrimes.front() << "\n";
   }
 
-  pthread_exit(NULL);
-
-  //std::cout << "Main thread finished\n";
+  return 0;
 }
 
-bool primeTest(std::uint32_t n, boost::random::mt19937 rng, int passes) {
-  for (int i = 0; i < 9; i++) if (!(n % bp[i])) return n == bp[i];
-  if (n < 8) return false;
-  return mp::miller_rabin_test(n, passes, rng);
-}
 
 void *PrimeWorker(void *threadarg) {
   struct thread_data *arg = (struct thread_data *) threadarg;
@@ -131,7 +112,7 @@ void *PrimeWorker(void *threadarg) {
   std::uint32_t foundCount = 0;
   if (_start % 2 == 0) _start++;
   for (std::uint32_t n = _start; n <= arg->end; n += 2) {
-    if (primeTest(n, arg->rng, arg->tests)) {
+    if (jlprime::primeTest(n, arg->rng, arg->tests)) {
       const std::lock_guard<std::mutex> lock(foundPrimes_mutex);
       foundPrimes.push_back(n);
     }
