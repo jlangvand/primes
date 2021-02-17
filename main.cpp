@@ -1,5 +1,6 @@
 #include "primetest.h"
 
+#include <boost/random/mersenne_twister.hpp>
 #include <cstdint>
 #include <ctime>
 #include <iostream>
@@ -16,14 +17,14 @@ namespace bpo = boost::program_options;
 
 std::mutex cout_mutex;
 std::mutex foundPrimes_mutex;
-std::list<std::uint32_t> foundPrimes;
+std::list<std::uint64_t> foundPrimes;
 
 struct thread_data {
   int thread_id;
-  std::uint32_t start;
-  std::uint32_t end;
+  std::uint64_t start;
+  std::uint64_t end;
   int tests;
-  boost::random::mt19937 rng;
+  boost::random::mt19937_64 rng;
 };
 
 void *PrimeWorker(void *threadarg);
@@ -33,14 +34,16 @@ int main(int argc, const char** argv) {
   desc.add_options()
     ("help",
      "show this text")
-    ("from", bpo::value<std::uint32_t>(),
+    ("from", bpo::value<std::uint64_t>(),
      "Find primes starting from (integer)")
-    ("to", bpo::value<std::uint32_t>(),
+    ("to", bpo::value<std::uint64_t>(),
      "Find primes up to (integer)")
     ("threads", bpo::value<int>(),
      "Number of threads")
     ("passes", bpo::value<int>(),
-     "Number of passes to use for primality determination");
+     "Number of passes to use for primality determination")
+    ("no-output",
+     "Don't print primes");
   bpo::variables_map vm;
   bpo::store(bpo::parse_command_line(argc, argv, desc), vm);
   bpo::notify(vm);
@@ -50,20 +53,22 @@ int main(int argc, const char** argv) {
     return 1;
   }
 
-  std::uint32_t t_start = 2;
-  std::uint32_t t_end = 10;
+  std::uint64_t t_start = 2;
+  std::uint64_t t_end = 10;
   int threadCount = 16;
   int passes = 6;
+  bool printNumbers = true;
 
   if (vm.count("to")) {
-    t_end = vm["to"].as<std::uint32_t>();
+    t_end = vm["to"].as<std::uint64_t>();
   } else {
     std::cout << "Specify an upper bound\n" << desc;
     return 1;
   }
-  if (vm.count("from")) t_start = vm["from"].as<std::uint32_t>();
+  if (vm.count("from")) t_start = vm["from"].as<std::uint64_t>();
   if (vm.count("threads")) threadCount = vm["threads"].as<int>();
   if (vm.count("passes")) passes = vm["passes"].as<int>();
+  if (vm.count("no-output")) printNumbers = false;
 
   if ((t_end - t_start) / 2 <= threadCount)
     threadCount = (t_end - t_start) / 3;
@@ -76,8 +81,8 @@ int main(int argc, const char** argv) {
             << "\nMiller-Rabin, " << passes << " passes\n" << threadCount
             << " threads\n";
 
-  std::uint32_t _e, _s = 0;
-  boost::random::mt19937 gen(clock());
+  std::uint64_t _e, _s = 0;
+  boost::random::mt19937_64 gen(clock());
   
   for (int i = 0; i < threadCount; i++) {
     _e = _s + ((t_end - t_start) / threadCount);
@@ -98,6 +103,9 @@ int main(int argc, const char** argv) {
     pthread_join(thread[i], NULL);
   }
 
+  if (!printNumbers) return 0;
+  
+  
   for (foundPrimes.sort(); foundPrimes.size(); foundPrimes.pop_front()) {
     std::cout << foundPrimes.front() << "\n";
   }
@@ -108,10 +116,10 @@ int main(int argc, const char** argv) {
 
 void *PrimeWorker(void *threadarg) {
   struct thread_data *arg = (struct thread_data *) threadarg;
-  std::uint32_t _start = arg->start;
-  std::uint32_t foundCount = 0;
+  std::uint64_t _start = arg->start;
+  std::uint64_t foundCount = 0;
   if (_start % 2 == 0) _start++;
-  for (std::uint32_t n = _start; n <= arg->end; n += 2) {
+  for (std::uint64_t n = _start; n <= arg->end; n += 2) {
     if (jlprime::primeTest(n, arg->rng, arg->tests)) {
       const std::lock_guard<std::mutex> lock(foundPrimes_mutex);
       foundPrimes.push_back(n);
