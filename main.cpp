@@ -55,7 +55,7 @@ int main(int argc, const char** argv) {
 
   std::uint64_t t_start = 2;
   std::uint64_t t_end = 10;
-  int threadCount = 16;
+  unsigned int threadCount = 16;
   int passes = 6;
   bool printNumbers = true;
 
@@ -84,7 +84,7 @@ int main(int argc, const char** argv) {
   std::uint64_t _e, _s = 0;
   boost::random::mt19937_64 gen(clock());
   
-  for (int i = 0; i < threadCount; i++) {
+  for (unsigned int i = 0; i < threadCount; i++) {
     _e = _s + ((t_end - t_start) / threadCount);
     td[i].thread_id = i;
     td[i].rng = gen;
@@ -99,7 +99,7 @@ int main(int argc, const char** argv) {
     _s = ++_e;
   }
 
-  for (int i = 0; i < threadCount; i++) {
+  for (unsigned int i = 0; i < threadCount; i++) {
     pthread_join(thread[i], NULL);
   }
 
@@ -117,7 +117,6 @@ int main(int argc, const char** argv) {
 void *PrimeWorker(void *threadarg) {
   struct thread_data *arg = (struct thread_data *) threadarg;
   std::uint64_t _start = arg->start;
-  std::uint64_t foundCount = 0;
   if (_start % 2 == 0) _start++;
   for (std::uint64_t n = _start; n <= arg->end; n += 2) {
     if (jlprime::primeTest(n, arg->rng, arg->tests)) {
