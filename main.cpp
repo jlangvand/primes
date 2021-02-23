@@ -13,6 +13,8 @@
 #include <boost/program_options.hpp>
 #include <boost/random.hpp>
 
+#define MIN(a, b) a < b ? a : b
+
 namespace bpo = boost::program_options;
 
 std::mutex cout_mutex;
@@ -53,7 +55,7 @@ int main(int argc, const char** argv) {
     return 1;
   }
 
-  std::uint64_t t_start = 2;
+  std::uint64_t t_start = 1;
   std::uint64_t t_end = 10;
   unsigned int threadCount = 16;
   int passes = 6;
@@ -89,7 +91,7 @@ int main(int argc, const char** argv) {
     td[i].thread_id = i;
     td[i].rng = gen;
     td[i].start = _s + t_start;
-    td[i].end = _e + t_start;
+    td[i].end = MIN(_e + t_start, t_end);
     td[i].tests = passes;
     rc = pthread_create(&thread[i], NULL, PrimeWorker, (void *)&td[i]);
     if (rc) {
@@ -104,8 +106,7 @@ int main(int argc, const char** argv) {
   }
 
   if (!printNumbers) return 0;
-  
-  
+
   for (foundPrimes.sort(); foundPrimes.size(); foundPrimes.pop_front()) {
     std::cout << foundPrimes.front() << "\n";
   }
